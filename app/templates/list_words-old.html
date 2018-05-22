@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+    all = {{ words|count }}
+<table class="table table-striped">
+    <thead>
+    <tr>
+        <th>front</th>
+        <th>phonetic</th>
+        <th>back</th>
+        <th>pronunciation</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for word in words %}
+    <tr>
+        <td>{{ word.front }}</td>
+        <td>{{ word.phonetic }}</td>
+        <td>{{ word.back }}</td>
+        <td><audio src="{{ url_for('get_pronunciation', word_id=word.id)}}" controls></audio> </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+
+{% endblock page_content %}

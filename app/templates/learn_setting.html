@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Learn Setting - js</title>
+    <script src="https://cdn.bootcss.com/jquery/1.10.2/jquery.min.js"></script>
+</head>
+<body>
+<p id="status"></p>
+
+<p>Need Review: <span id="need_review_count"></span>, Reviewed: <span id="reviewed_count"></span></p>
+
+<p>
+    Add learn
+    <label for="from">From</label><input id='from' type="text"/><label for="to">To</label><input id="to"/>
+    <button id="add_button">Add</button>
+</p>
+<script>
+    function postJson(url, data, callback) {
+        $.ajax({
+            url:url,
+            type: 'post',
+            data:JSON.stringify(data),
+            dataType:'json',
+            success: callback,
+            contentType: 'application/json; charset=UTF-8'
+        })
+    }
+    function updateNumbers(){
+        postJson('/api/get_need_review_word_id',
+            {},
+            function (data) {
+                console.log(data.data);
+                $('#need_review_count').html(data.data.length);
+            }
+        );
+        postJson('/api/get_today_reviewed_word_ids',
+            {},
+            function (data) {
+                console.log(data.data);
+                $('#reviewed_count').html(data.data.length);
+            }
+        );
+    }
+
+    $(function () {
+        $("#add_button").click(function () {
+            ids = [];
+            for (let i=parseInt($("#from").val()); i<=parseInt($("#to").val()); i++){
+                ids.push(i);
+            }
+            postJson('/api/set_learning',
+                {word_ids:ids},
+                function () {
+                    updateNumbers();
+                }
+            );
+
+        });
+
+        updateNumbers();
+
+    })
+</script>
+</body>
+</html>

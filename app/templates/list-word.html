@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>List words - js</title>
+    <script src="https://cdn.bootcss.com/jquery/1.10.2/jquery.min.js"></script>
+</head>
+<body>
+<p id="pages"></p>
+<button id="prev">Prev</button><button id="next">Next</button>
+<table id="words">
+    <thead>
+    <tr>
+    <td>id</td><td>front</td><td>phonetic</td><td>back</td>
+    </tr>
+    </thead>
+</table>
+<script>
+    let currentPage = 1;
+    let numberOfWords = null;
+    let pageLimit = 15;
+    function postJson(url, data, callback) {
+        $.ajax({
+            url:url,
+            type: 'post',
+            data:JSON.stringify(data),
+            dataType:'json',
+            success: callback,
+            contentType: 'application/json; charset=UTF-8'
+        })
+    }
+    function fillTable(limit, offset) {
+        if(offset === undefined){
+            offset = 0;
+        }
+        postJson('/api/get_words',{limit:limit, offset},
+            function (data) {
+                numberOfWords = data.total;
+                $("#pages").html(currentPage+'/'+(Math.floor(numberOfWords/pageLimit)+1));
+                console.log(data);
+                words = data.data;
+                let table$ = $("#words");
+                table$.find("tr").remove();
+                for (let i in data.data) {
+                    let row$ = $("<tr/>");
+                    row$.append($("<td/>").html(words[i]['id']));
+                    row$.append($("<td/>").html(words[i]['front']));
+                    row$.append($("<td/>").html(words[i]['phonetic']));
+                    row$.append($("<td/>").html(words[i]['back']));
+                    table$.append(row$);
+                }
+            });
+    }
+    $(function () {
+        $("#prev").click(function () {
+            if(currentPage == 1) return;
+            currentPage--;
+            fillTable(pageLimit, (currentPage-1)*pageLimit);
+        });
+        $("#next").click(function () {
+            if(currentPage == Math.floor(numberOfWords/pageLimit)+1) return;
+            currentPage++;
+            fillTable(pageLimit, (currentPage-1)*pageLimit)
+        });
+{#        $("#words").append("<td>1</td><td>2</td><td>3</td><td>4</td>");#}
+        fillTable(pageLimit);
+    })
+</script>
+</body>
+</html>

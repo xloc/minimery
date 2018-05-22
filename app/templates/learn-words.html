@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Learn words - js</title>
+    <script src="https://cdn.bootcss.com/jquery/1.10.2/jquery.min.js"></script>
+    <style>
+        .invisible {
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+<div id="page_selection"></div>
+<table id="words">
+    <thead>
+    <tr>
+        <td>front</td><td>phonetic</td><td>back</td><td>score</td>
+    </tr>
+    </thead>
+</table>
+<button id="submit_reviews">Submit Reviews</button>
+<script>
+    let groupedWordIds = [];
+    let wordScores = new Map();
+
+    function postJson(url, data, callback) {
+        $.ajax({
+            url:url,
+            type: 'post',
+            data:JSON.stringify(data),
+            dataType:'json',
+            success: callback,
+            contentType: 'application/json; charset=UTF-8'
+        })
+    }
+
+    function scoreButtonClicked(e){
+        let score = parseInt(e.target.innerHTML);
+        let wordId = parseInt(e.target.parentNode.children[0].innerHTML);
+
+        wordScores.set(wordId, score);
+        console.debug(e.target.parentNode.getElementsByTagName("button"));
+        let scoreButtons = e.target.parentNode.getElementsByTagName("button");
+        for (let i in scoreButtons) {
+            scoreButtons[i].disabled = false;
+        }
+        e.target.setAttribute('disabled', true);
+    }
+
+    function fillTable(wordIdList) {
+        function makeScoreButtons(wordId) {
+            let btnContainer$ = $("<div/>").click(scoreButtonClicked);
+            btnContainer$.append($("<span/>").html(wordId).hide());
+            for (let i=0; i<=5; i++)
+                btnContainer$.append($("<button/>").html(i));
+            return btnContainer$;
+        }
+        postJson('/api/get_words_by_ids',{ids:wordIdList},
+            function (data) {
+                console.log(data);
+                let words = data.data;
+                let table$ = $("#words");
+                $("#words tbody tr").remove();
+
+                for (let i in data.data) {
+                    let row$ = $("<tr/>");
+                    row$.append($("<td/>").html(words[i]['front']));
+                    row$.append($("<td/>").html(words[i]['phonetic']));
+                    row$.append($("<td/>").html(words[i]['back']).addClass('invisible').hover(
+                        function () {$(this).removeClass('invisible');},
+                        function () {$(this).addClass('invisible');}
+                    ));
+                    row$.append(makeScoreButtons(words[i]['id']));
+                    table$.append(row$);
+                }
+            }
+        );
+    }
+
+    function updateTable(groupId) {
+        postJson('/api/get_need_review_word_id', {}, function (data) {
+            let nrwSet = new Set(data.data);
+            let all = groupedWordIds[groupId];
+            let stillNeed = [];
+            for (let wid of all){
+                if(nrwSet.has(wid)){
+                    stillNeed.push(wid);
+                }
+            }
+
+            fillTable(stillNeed);
+        });
+    }
+    $(function () {
+        postJson('/api/get_need_review_word_id', {}, function (data) {
+            let ids = data.data;
+
+            // add buttons based on ids
+            for (let p=1; p<Math.ceil(ids.length / 10); p++){
+                $("#page_selection").append($("<button/>").html(p).click(function () {
+                    updateTable(p-1);
+                }));
+            }
+
+            // fill groupWordIds
+            let cellOf10 = [];
+            for (let i in ids){
+                cellOf10.push(ids[i]);
+                if (i % 10 === 9){
+                    groupedWordIds.push(cellOf10);
+                    cellOf10 = [];
+                }
+            }
+            if(cellOf10.length !== 0){
+                groupedWordIds.push(cellOf10);
+            }
+
+            // update display
+            updateTable(0);
+        });
+
+        $("#submit_reviews").click(function () {
+            console.log(wordScores);
+            for (let [id, score] of wordScores.entries()){
+                postJson('/api/add_review',
+                    {
+                        word_id:id, familiarity:score,
+                        timestamp: (new Date()).toISOString()
+                    })
+            }
+        })
+    })
+</script>
+</body>
+</html>
