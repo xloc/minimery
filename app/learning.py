@@ -74,6 +74,7 @@ def get_review_word_ids():
     low_score_words = q.all()
     low_score_words_ids = {w.id for w in low_score_words}
 
+    # fixme: the time standard
     q = WordInfo.query.filter(WordInfo.due < datetime.now())
     due_words = q.all()
     due_words_ids = {w.id for w in due_words}
